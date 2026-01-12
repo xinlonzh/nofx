@@ -71,6 +71,13 @@ func configureMCPClient(cfg BacktestConfig, base mcp.AIClient) (mcp.AIClient, er
 		oaiC := mcp.NewOpenAIClientWithOptions()
 		oaiC.(*mcp.OpenAIClient).SetAPIKey(cfg.AICfg.APIKey, cfg.AICfg.BaseURL, cfg.AICfg.Model)
 		return oaiC, nil
+	case "ollama":
+		if cfg.AICfg.APIKey == "" {
+			return nil, fmt.Errorf("ollama provider requires api key")
+		}
+		oc := mcp.NewOllamaClientWithOptions()
+		oc.(*mcp.OllamaClient).SetAPIKey(cfg.AICfg.APIKey, cfg.AICfg.BaseURL, cfg.AICfg.Model)
+		return oc, nil
 	case "custom":
 		if cfg.AICfg.BaseURL == "" || cfg.AICfg.APIKey == "" || cfg.AICfg.Model == "" {
 			return nil, fmt.Errorf("custom provider requires base_url, api key and model")
@@ -121,6 +128,11 @@ func cloneBaseClient(base mcp.AIClient) *mcp.Client {
 			return &cp
 		}
 	case *mcp.OpenAIClient:
+		if c != nil && c.Client != nil {
+			cp := *c.Client
+			return &cp
+		}
+	case *mcp.OllamaClient:
 		if c != nil && c.Client != nil {
 			cp := *c.Client
 			return &cp

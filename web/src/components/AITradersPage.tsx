@@ -44,6 +44,8 @@ function getModelDisplayName(modelId: string): string {
       return 'Qwen'
     case 'claude':
       return 'Claude'
+    case 'ollama':
+      return 'Ollama'
     default:
       return modelId.toUpperCase()
   }
@@ -95,6 +97,11 @@ const AI_PROVIDER_CONFIG: Record<string, {
     defaultModel: 'moonshot-v1-auto',
     apiUrl: 'https://platform.moonshot.ai/console/api-keys',
     apiName: 'Moonshot',
+  },
+  ollama: {
+    defaultModel: 'glm-4.7:cloud',
+    apiUrl: 'https://ollama.com/settings/api',
+    apiName: 'Ollama',
   },
 }
 
