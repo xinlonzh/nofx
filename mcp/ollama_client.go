@@ -6,7 +6,7 @@ import (
 
 const (
 	ProviderOllama       = "ollama"
-	DefaultOllamaBaseURL = "https://ollama.com"
+	DefaultOllamaBaseURL = "https://api.ollama.com/v1"
 	DefaultOllamaModel   = "glm-4.7:cloud"
 )
 
@@ -76,7 +76,5 @@ func (oc *OllamaClient) setAuthHeader(reqHeaders http.Header) {
 	reqHeaders.Set("Authorization", "Bearer "+oc.APIKey)
 }
 
-func (oc *OllamaClient) buildUrl() string {
-	// Ollama cloud API uses /api/chat endpoint
-	return oc.BaseURL + "/api/chat"
-}
+// Use default buildUrl from base client (baseURL + /chat/completions)
+// for OpenAI-compatible API format

@@ -175,6 +175,15 @@ export const api = {
     return result.data!
   },
 
+  // 获取Ollama云模型列表（无需认证）
+  async getOllamaModels(): Promise<string[]> {
+    const result = await httpClient.get<{ models: string[] }>(
+      `${API_BASE}/ollama/models`
+    )
+    if (!result.success) throw new Error('获取Ollama模型列表失败')
+    return result.data?.models || []
+  },
+
   async getPromptTemplates(): Promise<string[]> {
     const res = await fetch(`${API_BASE}/prompt-templates`)
     if (!res.ok) throw new Error('获取提示词模板失败')

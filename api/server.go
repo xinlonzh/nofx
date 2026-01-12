@@ -105,6 +105,7 @@ func (s *Server) setupRoutes() {
 
 		// System supported models and exchanges (no authentication required)
 		api.GET("/supported-models", s.handleGetSupportedModels)
+		api.GET("/ollama/models", s.handleGetOllamaModels)
 		api.GET("/supported-exchanges", s.handleGetSupportedExchanges)
 
 		// System config (no authentication required, for frontend to determine admin mode/registration status)
@@ -3290,6 +3291,50 @@ func (s *Server) handleGetSupportedModels(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, supportedModels)
+}
+
+// handleGetOllamaModels Fetch available models from Ollama cloud API
+func (s *Server) handleGetOllamaModels(c *gin.Context) {
+	// Fetch models from Ollama cloud API
+	resp, err := http.Get("https://ollama.com/api/tags")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch models from Ollama"})
+		logger.Errorf("Failed to fetch Ollama models: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Ollama API returned non-200 status"})
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read Ollama response"})
+		return
+	}
+
+	// Parse the response
+	var result struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse Ollama response"})
+		logger.Errorf("Failed to parse Ollama models response: %v", err)
+		return
+	}
+
+	// Extract model names
+	models := make([]string, 0, len(result.Models))
+	for _, m := range result.Models {
+		models = append(models, m.Name)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"models": models})
 }
 
 // handleGetSupportedExchanges Get list of exchanges supported by the system
