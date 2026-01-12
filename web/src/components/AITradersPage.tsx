@@ -62,6 +62,8 @@ const AI_PROVIDER_CONFIG: Record<string, {
   defaultModel: string
   apiUrl: string
   apiName: string
+  baseUrl?: string
+  baseUrlHint?: string
 }> = {
   deepseek: {
     defaultModel: 'deepseek-chat',
@@ -102,6 +104,8 @@ const AI_PROVIDER_CONFIG: Record<string, {
     defaultModel: 'glm-4.7:cloud',
     apiUrl: 'https://ollama.com/settings/api',
     apiName: 'Ollama',
+    baseUrl: 'https://api.ollama.com/v1',
+    baseUrlHint: 'Leave blank for cloud API, or use https://api.ollama.com/v1',
   },
 }
 
@@ -1643,7 +1647,14 @@ function ModelConfigModal({
                     }}
                   />
                   <div className="text-xs mt-1" style={{ color: '#848E9C' }}>
-                    {t('leaveBlankForDefault', language)}
+                    {selectedModel?.provider === 'ollama' ? (
+                      <>
+                        {AI_PROVIDER_CONFIG['ollama']?.baseUrlHint || t('leaveBlankForDefault', language)}
+                        {' '}Default: {AI_PROVIDER_CONFIG['ollama']?.baseUrl}
+                      </>
+                    ) : (
+                      t('leaveBlankForDefault', language)
+                    )}
                   </div>
                 </div>
 
