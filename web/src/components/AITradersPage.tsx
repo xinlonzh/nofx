@@ -104,8 +104,8 @@ const AI_PROVIDER_CONFIG: Record<string, {
     defaultModel: 'glm-4.7:cloud',
     apiUrl: 'https://ollama.com/settings/api',
     apiName: 'Ollama',
-    baseUrl: 'https://api.ollama.com/v1',
-    baseUrlHint: 'Leave blank for cloud API, or use https://api.ollama.com/v1',
+    baseUrl: 'https://ollama.com',
+    baseUrlHint: '仅支持Ollama云模型，不支持本地模型 / Supports Ollama cloud models only, not local models',
   },
 }
 

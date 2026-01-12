@@ -4,12 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 )
 
 const (
 	ProviderOllama       = "ollama"
-	DefaultOllamaBaseURL = "https://api.ollama.com/v1"
+	DefaultOllamaBaseURL = "https://ollama.com"
 	DefaultOllamaModel   = "glm-4.7:cloud"
 )
 
@@ -79,98 +78,53 @@ func (oc *OllamaClient) setAuthHeader(reqHeaders http.Header) {
 	reqHeaders.Set("Authorization", "Bearer "+oc.APIKey)
 }
 
-// buildUrl builds the appropriate API endpoint based on the base URL
-// - For https://ollama.com: use /api/chat (native format)
-// - For https://api.ollama.com: use /v1/chat/completions (OpenAI-compatible)
-// - For custom URLs: detect format based on URL pattern
+// buildUrl returns the Ollama native API endpoint
 func (oc *OllamaClient) buildUrl() string {
-	baseURL := oc.BaseURL
-
-	// Check if using Ollama native API format
-	if baseURL == "https://ollama.com" || baseURL == "http://ollama.com" {
-		return baseURL + "/api/chat"
-	}
-
-	// Check if URL ends with /ollama.com (native format)
-	if strings.HasSuffix(baseURL, "ollama.com") || strings.HasSuffix(baseURL, "ollama.com/") {
-		// Remove trailing slash if present
-		baseURL = strings.TrimSuffix(baseURL, "/")
-		return baseURL + "/api/chat"
-	}
-
-	// Default: use OpenAI-compatible format (baseURL + /chat/completions)
-	return baseURL + "/chat/completions"
+	return oc.BaseURL + "/api/chat"
 }
 
-// buildMCPRequestBody builds the request body for Ollama API
-// Supports both native and OpenAI-compatible formats
+// buildMCPRequestBody builds the request body for Ollama native API format
 func (oc *OllamaClient) buildMCPRequestBody(systemPrompt, userPrompt string) map[string]any {
-	baseURL := oc.BaseURL
+	// Build messages array
+	messages := []map[string]string{}
 
-	// Check if using Ollama native API format
-	isNativeFormat := baseURL == "https://ollama.com" ||
-		baseURL == "http://ollama.com" ||
-		strings.HasSuffix(baseURL, "ollama.com") ||
-		strings.HasSuffix(baseURL, "ollama.com/")
-
-	if isNativeFormat {
-		// Ollama native format
-		messages := []map[string]string{}
-		if systemPrompt != "" {
-			messages = append(messages, map[string]string{
-				"role":    "system",
-				"content": systemPrompt,
-			})
-		}
+	// If system prompt exists, add system message
+	if systemPrompt != "" {
 		messages = append(messages, map[string]string{
-			"role":    "user",
-			"content": userPrompt,
+			"role":    "system",
+			"content": systemPrompt,
 		})
-
-		return map[string]any{
-			"model":    oc.Model,
-			"messages": messages,
-			"stream":   false,
-		}
 	}
+	// Add user message
+	messages = append(messages, map[string]string{
+		"role":    "user",
+		"content": userPrompt,
+	})
 
-	// OpenAI-compatible format (default)
-	// Use base client's implementation
-	return oc.Client.buildMCPRequestBody(systemPrompt, userPrompt)
+	return map[string]any{
+		"model":    oc.Model,
+		"messages": messages,
+		"stream":   false,
+	}
 }
 
-// parseMCPResponse parses the response from Ollama API
-// Supports both native and OpenAI-compatible formats
+// parseMCPResponse parses Ollama native API response
 func (oc *OllamaClient) parseMCPResponse(body []byte) (string, error) {
-	baseURL := oc.BaseURL
-
-	// Check if using Ollama native API format
-	isNativeFormat := baseURL == "https://ollama.com" ||
-		baseURL == "http://ollama.com" ||
-		strings.HasSuffix(baseURL, "ollama.com") ||
-		strings.HasSuffix(baseURL, "ollama.com/")
-
-	if isNativeFormat {
-		// Ollama native format response: {"message": {"content": "..."}, "done": true}
-		var result struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-			Done bool `json:"done"`
-		}
-
-		if err := json.Unmarshal(body, &result); err != nil {
-			return "", fmt.Errorf("failed to parse Ollama response: %w", err)
-		}
-
-		if result.Message.Content == "" {
-			return "", fmt.Errorf("Ollama returned empty response")
-		}
-
-		return result.Message.Content, nil
+	// Ollama native format response: {"message": {"content": "..."}, "done": true}
+	var result struct {
+		Message struct {
+			Content string `json:"content"`
+		} `json:"message"`
+		Done bool `json:"done"`
 	}
 
-	// OpenAI-compatible format (default)
-	// Use base client's implementation
-	return oc.Client.parseMCPResponse(body)
+	if err := json.Unmarshal(body, &result); err != nil {
+		return "", fmt.Errorf("failed to parse Ollama response: %w", err)
+	}
+
+	if result.Message.Content == "" {
+		return "", fmt.Errorf("Ollama returned empty response")
+	}
+
+	return result.Message.Content, nil
 }
