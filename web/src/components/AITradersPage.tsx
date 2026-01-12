@@ -1418,11 +1418,37 @@ function ModelConfigModal({
   const [apiKey, setApiKey] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
   const [modelName, setModelName] = useState('')
+  const [ollamaModels, setOllamaModels] = useState<string[]>([])
+  const [ollamaModelsLoading, setOllamaModelsLoading] = useState(false)
 
   // 获取当前编辑的模型信息 - 编辑时从已配置的模型中查找，新建时从所有支持的模型中查找
   const selectedModel = editingModelId
     ? configuredModels?.find((m) => m.id === selectedModelId)
     : allModels?.find((m) => m.id === selectedModelId)
+
+  // 当选择 Ollama 时，获取模型列表
+  useEffect(() => {
+    if (selectedModelId && !editingModelId) {
+      const model = allModels?.find((m) => m.id === selectedModelId)
+      if (model?.provider === 'ollama' && ollamaModels.length === 0) {
+        setOllamaModelsLoading(true)
+        api.getOllamaModels()
+          .then((models) => {
+            setOllamaModels(models)
+            // Set default model if modelName is empty
+            if (!modelName) {
+              setModelName('glm-4.7:cloud')
+            }
+          })
+          .catch(() => {
+            // Ignore error, user can still type manually
+          })
+          .finally(() => {
+            setOllamaModelsLoading(false)
+          })
+      }
+    }
+  }, [selectedModelId])
 
   // 如果是编辑现有模型，初始化API Key、Base URL和Model Name
   useEffect(() => {
@@ -1628,21 +1654,50 @@ function ModelConfigModal({
                   >
                     {t('customModelName', language)}
                   </label>
-                  <input
-                    type="text"
-                    value={modelName}
-                    onChange={(e) => setModelName(e.target.value)}
-                    placeholder={t('customModelNamePlaceholder', language)}
-                    className="w-full px-3 py-2 rounded"
-                    style={{
-                      background: '#0B0E11',
-                      border: '1px solid #2B3139',
-                      color: '#EAECEF',
-                    }}
-                  />
-                  <div className="text-xs mt-1" style={{ color: '#848E9C' }}>
-                    {t('leaveBlankForDefaultModel', language)}
-                  </div>
+                  {selectedModel?.provider === 'ollama' && ollamaModels.length > 0 ? (
+                    <>
+                      <select
+                        value={modelName}
+                        onChange={(e) => setModelName(e.target.value)}
+                        className="w-full px-3 py-2 rounded"
+                        style={{
+                          background: '#0B0E11',
+                          border: '1px solid #2B3139',
+                          color: '#EAECEF',
+                        }}
+                      >
+                        <option value="">{t('pleaseSelectModel', language)}</option>
+                        {ollamaModels.map((model) => (
+                          <option key={model} value={model}>
+                            {model}
+                          </option>
+                        ))}
+                      </select>
+                      {ollamaModelsLoading && (
+                        <div className="text-xs mt-1" style={{ color: '#848E9C' }}>
+                          Loading models...
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        value={modelName}
+                        onChange={(e) => setModelName(e.target.value)}
+                        placeholder={t('customModelNamePlaceholder', language)}
+                        className="w-full px-3 py-2 rounded"
+                        style={{
+                          background: '#0B0E11',
+                          border: '1px solid #2B3139',
+                          color: '#EAECEF',
+                        }}
+                      />
+                      <div className="text-xs mt-1" style={{ color: '#848E9C' }}>
+                        {t('leaveBlankForDefaultModel', language)}
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div
